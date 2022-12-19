@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/assets/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="/assets/lib/cropper/cropper.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #f2f3f5;
+            padding: 15px;
+        }
+
+        /* 设置卡片主体区域的宽度 */
+        .layui-card-body {
+            width: 500px;
+        }
+
+        /* 设置按钮行的样式 */
+        .row2 {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* 设置裁剪区域的样式 */
+        .cropper-box {
+            width: 350px;
+            height: 350px;
+            background-color: cyan;
+            overflow: hidden;
+        }
+
+        /* 设置第一个预览区域的样式 */
+        .w100 {
+            width: 100px;
+            height: 100px;
+            background-color: gray;
+        }
+
+        /* 设置第二个预览区域的样式 */
+        .w50 {
+            width: 50px;
+            height: 50px;
+            background-color: gray;
+            margin-top: 50px;
+        }
+
+        /* 设置预览区域下方文本的样式 */
+        .size {
+            font-size: 12px;
+            color: gray;
+            text-align: center;
+        }
+
+        /* 设置图片行的样式 */
+        .row1 {
+            display: flex;
+        }
+
+        /* 设置 preview-box 区域的的样式 */
+        .preview-box {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            align-items: center;
+        }
+
+        /* 设置 img-preview 区域的样式 */
+        .img-preview {
+            overflow: hidden;
+            border-radius: 50%;
+        }
+        #file{display: none;}
+    </style>
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="layui-card">
+        <div class="layui-card-header">更换头像</div>
+        <div class="layui-card-body">
+            <!-- 第一行的图片裁剪和预览区域 -->
+            <div class="row1">
+                <!-- 图片裁剪区域 -->
+                <div class="cropper-box">
+                    <!-- 这个 img 标签很重要，将来会把它初始化为裁剪区域 -->
+                    <img id="image" src="/assets/images/sample.jpg" />
+                </div>
+                <!-- 图片的预览区域 -->
+                <div class="preview-box">
+                    <div>
+                        <!-- 宽高为 100px 的预览区域 -->
+                        <div class="img-preview w100"></div>
+                        <p class="size">100 x 100</p>
+                    </div>
+                    <div>
+                        <!-- 宽高为 50px 的预览区域 -->
+                        <div class="img-preview w50"></div>
+                        <p class="size">50 x 50</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行的按钮区域 -->
+            <div class="row2">
+                <input type="file" id="file" accept="image/png,image/jpeg">
+                <button type="button" id="btnChooseImage" class="layui-btn">上传</button>
+                <button type="button" id="btnUpload" class="layui-btn layui-btn-danger">确定</button>
+            </div>
+        </div>
+    </div>
+    <script src="/assets/lib/layui/layui.all.js"></script>
+    <script src="/assets/lib/jquery.js"></script>
+    <script src="/assets/lib/cropper/Cropper.js"></script>
+    <script src="/assets/lib/cropper/jquery-cropper.js"></script>
+    <script src="/assets/js/baseAPI.js"></script>
+<script>
+      // 1.1 获取裁剪区域的 DOM 元素
+  var $image = $('#image')
+  // 1.2 配置选项
+  const options = {
+    // 纵横比
+    aspectRatio: 1,
+    // 指定预览区域
+    preview: '.img-preview'
+  }
+
+  // 1.3 创建裁剪区域
+  $image.cropper(options)
+  let layer = layui.layer
+  $('#btnChooseImage').on('click',function(){
+    $('#file').click()
+  })
+  //监听图片选择区域是否发生改变（是否已选择文件）
+  $('#file').on('change',function(e){
+    var filelist = e.target.files
+    
+    if(filelist.length === 0) return layer.msg('请选择照片！')
+    //1拿到用户的文件
+    var file = e.target.files[0]
+    //2将文件转化为路径
+    var newImgURL = URL.createObjectURL(file)
+    //3先`销毁`旧的裁剪区域，再`重新设置图片路径`，之后再`创建新的裁剪区域`：
+    $image
+   .cropper('destroy')      // 销毁旧的裁剪区域
+   .attr('src', newImgURL)  // 重新设置图片路径
+   .cropper(options)        // 重新初始化裁剪区域
+
+   $('#btnUpload').on('click',function(){
+    //拿到用户裁剪过后的图片
+    var dataURL = $image
+      .cropper('getCroppedCanvas', { // 创建一个 Canvas 画布
+        width: 100,
+        height: 100
+      })
+      .toDataURL('image/png')       // 将 Canvas 画布上的内容，转化为 base64 格式的字符串
+      //2.调用接口，将图片上传到服务器上
+      $.ajax({
+        method:'POST',
+        url:'/my/update/avatar',
+        data:{
+            avatar:dataURL
+        },
+        success:function(res){
+            if(res.status !== 0) return layer.msg('更新头像失败！')
+            layer.msg('更新头像成功')
+            window.parent.getUserInfo()
+        }
+      })
+   })
+  })
+</script>
+</body>
+
+</html>
